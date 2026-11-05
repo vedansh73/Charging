@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vedansh AI Coder</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#080d17;color:#e5e7eb;
+  font-family:Arial,sans-serif;
+  min-height:100vh;
+}
+header{
+  padding:18px 5%;
+  border-bottom:1px solid #263449;
+  display:flex;justify-content:space-between;
+  align-items:center;gap:10px;
+  background:#0c1422;
+}
+.logo{font-size:21px;font-weight:bold;color:#36e6a0}
+.logo span{color:white}
+.status{font-size:12px;color:#36e6a0}
+.container{
+  max-width:1000px;margin:30px auto;padding:15px;
+}
+h1{font-size:28px;margin-bottom:10px}
+.sub{color:#94a3b8;margin-bottom:25px}
+.settings{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:12px;margin-bottom:15px;
+}
+label{font-size:13px;color:#9ca3af}
+input,select,textarea{
+  width:100%;padding:13px;margin-top:7px;
+  background:#111c2d;color:white;
+  border:1px solid #29384f;border-radius:9px;
+  outline:none;font-size:14px;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#36e6a0;
+}
+.actions{
+  display:flex;flex-wrap:wrap;gap:9px;
+  margin:18px 0;
+}
+button{
+  background:#36e6a0;color:#07130e;
+  padding:12px 17px;border:0;border-radius:8px;
+  font-weight:bold;cursor:pointer;
+}
+button.secondary{
+  background:#1b2a40;color:white;
+  border:1px solid #34445c;
+}
+button:disabled{opacity:.5;cursor:not-allowed}
+.chat{
+  background:#0e1726;border:1px solid #263449;
+  border-radius:12px;padding:15px;
+  min-height:280px;
+}
+.message{
+  padding:14px;margin:10px 0;
+  border-radius:10px;line-height:1.6;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+}
+.user{background:#193b35;margin-left:8%}
+.ai{background:#172337;margin-right:4%}
+.message-head{
+  color:#36e6a0;font-size:12px;
+  margin-bottom:8px;font-weight:bold;
+}
+pre{
+  background:#070b12;padding:13px;
+  border-radius:8px;overflow-x:auto;
+  margin:10px 0;white-space:pre;
+}
+code{font-family:monospace;color:#9bf7ca}
+.copy{
+  padding:7px 12px;font-size:12px;
+  margin-top:5px;
+}
+#loading{color:#36e6a0;margin:12px 0;display:none}
+#prompt{min-height:110px;resize:vertical}
+.footer{
+  text-align:center;color:#64748b;
+  padding:25px;font-size:12px;
+}
+@media(max-width:600px){
+  .settings{grid-template-columns:1fr}
+  h1{font-size:23px}
+  header{padding:15px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">⚡ VEDANSH <span>AI CODER</span></div>
+  <div class="status">● AI SYSTEM</div>
+</header>
+
+<div class="container">
+
+<h1>AI Coding Assistant</h1>
+<p class="sub">Your personal AI developer. Write, debug and understand code.</p>
+
+<div class="settings">
+
+  <label>
+    AIMLAPI Key
+    <input id="apiKey" type="password"
+    placeholder="Enter your new API key"
+    autocomplete="off">
+  </label>
+
+  <label>
+    AI Model
+    <input id="model" value="openai/gpt-5-5"
+    placeholder="Enter model ID">
+  </label>
+
+  <label>
+    Programming Language
+    <select id="language">
+      <option>Python</option>
+      <option>JavaScript</option>
+      <option>HTML</option>
+      <option>CSS</option>
+      <option>C</option>
+      <option>C++</option>
+      <option>Java</option>
+      <option>PHP</option>
+      <option>SQL</option>
+      <option>Bash</option>
+    </select>
+  </label>
+
+  <label>
+    Assistant Mode
+    <select id="mode">
+      <option value="generate">Code Generator</option>
+      <option value="debug">Code Debugger</option>
+      <option value="explain">Code Explainer</option>
+      <option value="optimize">Code Optimizer</option>
+      <option value="learn">Teach Me</option>
+    </select>
+  </label>
+
+</div>
+
+<label>Your Request</label>
+<textarea id="prompt"
+placeholder="Example: Create a Python calculator with a modern interface..."></textarea>
+
+<div class="actions">
+  <button id="sendBtn" onclick="sendMessage()">⚡ Generate Code</button>
+  <button class="secondary" onclick="clearChat()">Clear Chat</button>
+</div>
+
+<div id="loading">⏳ AI is thinking...</div>
+
+<div class="chat" id="chat">
+  <div style="text-align:center;color:#64748b;padding:65px 10px">
+    <div style="font-size:35px">⌘</div>
+    <p>Your AI coding workspace is ready.</p>
+    <p style="font-size:12px;margin-top:8px">Ask anything about programming.</p>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  VEDANSH AI CODER • Powered by AIMLAPI
+</div>
+
+<script>
+const API_URL = "https://api.aimlapi.com/v1/chat/completions";
+
+let history = [];
+
+const $ = id => document.getElementById(id);
+
+function addMessage(role, content) {
+  const chat = $("chat");
+
+  if(!history.length) chat.innerHTML = "";
+
+  const div = document.createElement("div");
+  div.className = "message " + role;
+
+  const head = document.createElement("div");
+  head.className = "message-head";
+  head.textContent = role === "user" ? "YOU" : "AI CODER";
+
+  const body = document.createElement("div");
+  body.textContent = content;
+
+  div.append(head, body);
+
+  if(role === "ai"){
+    const copy = document.createElement("button");
+    copy.className = "copy secondary";
+    copy.textContent = "Copy Response";
+    copy.onclick = () => {
+      navigator.clipboard.writeText(content)
+        .then(() => copy.textContent = "Copied!");
+    };
+    div.appendChild(copy);
+  }
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function getSystemPrompt() {
+  const lang = $("language").value;
+  const mode = $("mode").value;
+
+  const instructions = {
+    generate: "Generate complete, working code.",
+    debug: "Find bugs, explain errors and provide corrected code.",
+    explain: "Explain the supplied code step by step.",
+    optimize: "Improve performance, readability and maintainability.",
+    learn: "Teach the programming concept step by step with examples."
+  };
+
+  return `You are an expert AI programming assistant.
+Selected language: ${lang}.
+Task: ${instructions[mode]}
+Provide accurate, safe and complete answers.
+Use Markdown code blocks with correct language labels.
+Explain important parts clearly.
+Never claim code was executed or tested unless it actually was.`;
+}
+
+async function sendMessage() {
+  const key = $("apiKey").value.trim();
+  const model = $("model").value.trim();
+  const prompt = $("prompt").value.trim();
+
+  if(!key){
+    alert("Please enter your AIMLAPI key.");
+    return;
+  }
+
+  if(!model || !prompt){
+    alert("Enter a model ID and your coding request.");
+    return;
+  }
+
+  const btn = $("sendBtn");
+  btn.disabled = true;
+  $("loading").style.display = "block";
+
+  if(!history.length) $("chat").innerHTML = "";
+
+  addMessage("user", prompt);
+
+  history.push({
+    role:"user",
+    content:prompt
+  });
+
+  $("prompt").value = "";
+
+  try {
+    const response = await fetch(API_URL, {
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer " + key,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        model:model,
+        messages:[
+          {role:"system",content:getSystemPrompt()},
+          ...history
+        ],
+        temperature:0.4
+      })
+    });
+
+    const data = await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        data.error?.message ||
+        data.message ||
+        "API Error: " + response.status
+      );
+    }
+
+    let answer = data.choices?.[0]?.message?.content;
+
+    if(Array.isArray(answer)){
+      answer = answer.map(x => x.text || "").join("\n");
+    }
+
+    if(typeof answer !== "string" || !answer.trim()){
+      throw new Error("No valid AI response received.");
+    }
+
+    history.push({
+      role:"assistant",
+      content:answer
+    });
+
+    addMessage("ai", answer);
+
+  } catch(error) {
+    addMessage("ai", "ERROR: " + error.message);
+  } finally {
+    $("loading").style.display = "none";
+    btn.disabled = false;
+  }
+}
+
+function clearChat(){
+  history = [];
+  $("chat").innerHTML = `
+    <div style="text-align:center;color:#64748b;padding:65px 10px">
+      <div style="font-size:35px">⌘</div>
+      <p>Chat cleared. Ready for a new task.</p>
+    </div>`;
+}
+
+$("prompt").addEventListener("keydown", e => {
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+</script>
+
+</body>
+      </html>
+      
